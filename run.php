@@ -13,12 +13,12 @@ $logfile = $logdir.DIRECTORY_SEPARATOR.'sysstat-web.log';
 // Crate folders
 if (!is_dir($logdir)) {
 	if (!mkdir($logdir, 0777, true)) {
-		echo "can't crate $logdir folder";
+		echo "can't crate $logdir folder\n";
 	}
 }
 if (!is_dir($dbDir)) {
 	if (mkdir($dbDir, 0777, true)) {
-		echo "can't crate $dbDir folder";
+		echo "can't crate $dbDir folder\n";
 	}
 }
 
