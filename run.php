@@ -69,7 +69,7 @@ if ($mode == 'init') {
 			$plugin = $pluginsDir . DIRECTORY_SEPARATOR . $entry;
 			if (is_link($plugin)) $plugin = readlink($plugin);
 
-			if (is_file($plugin)) {
+			if (is_file($plugin) && is_executable($plugin)) {
 				$cmd = '';
 				if (strtoupper(substr($entry, -4)) === '.PHP') $cmd .= 'php ';
 				$cmd .= '"'.$plugin.'" config';
@@ -195,7 +195,7 @@ else {
 
 			if (is_link($plugin)) $plugin = readlink($plugin);
 
-			if (is_file($plugin)) {
+			if (is_file($plugin) && is_executable($plugin)) {
 				$cmd = '';
 				if (strtoupper(substr($entry, -4)) === '.PHP') $cmd .= 'php ';
 				$cmd .= '"'.$plugin.'"';
