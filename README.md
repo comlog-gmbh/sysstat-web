@@ -12,6 +12,7 @@ php /var/www/sysstat-web/run.php init
 ```
 Add the command "php /var/www/sysstat-web/run.php" to cronjobs or windows task. Set the interval as you need it!
 
+copy plugins into ./plugins/ directory and make executable.
 
 # Usage
 ## Start nodejs server
