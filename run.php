@@ -3,22 +3,34 @@
 error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
 define("ROOTFS", dirname(__FILE__));
 
+//echo "Root:".ROOTFS."\n";
+
 // Paths
-$pluginsDir = realpath(ROOTFS.DIRECTORY_SEPARATOR.'plugins');
-$httpdocs = realpath(ROOTFS.DIRECTORY_SEPARATOR.'httpdocs');
-$dbDir = realpath($httpdocs.DIRECTORY_SEPARATOR.'db');
-$logdir = realpath(ROOTFS.DIRECTORY_SEPARATOR.'logs');
+$pluginsDir = ROOTFS.DIRECTORY_SEPARATOR.'plugins';
+$httpdocs = ROOTFS.DIRECTORY_SEPARATOR.'httpdocs';
+$dbDir = $httpdocs.DIRECTORY_SEPARATOR.'db';
+$logdir = ROOTFS.DIRECTORY_SEPARATOR.'logs';
 $logfile = $logdir.DIRECTORY_SEPARATOR.'sysstat-web.log';
+$user = 'www-data';
+$group = 'www-data';
 
 // Crate folders
 if (!is_dir($logdir)) {
 	if (!mkdir($logdir, 0777, true)) {
 		echo "can't crate $logdir folder\n";
 	}
+	else {
+		chown($logdir, $user);
+		chgrp($logdir, $group);
+	}
 }
 if (!is_dir($dbDir)) {
-	if (mkdir($dbDir, 0777, true)) {
+	if (!mkdir($dbDir, 0777, true)) {
 		echo "can't crate $dbDir folder\n";
+	}
+	else {
+		chown($dbDir, $user);
+		chgrp($dbDir, $group);
 	}
 }
 
@@ -163,6 +175,9 @@ if ($mode == 'init') {
 		closedir($handle);
 
 		file_put_contents($DBConfigFile, json_encode($DBConfig, JSON_PRETTY_PRINT));
+		chown($DBConfigFile, $user);
+		chgrp($DBConfigFile, $group);
+
 		echo "$DBConfigFile writen\n";
 	}
 	else {
@@ -209,6 +224,8 @@ else {
 								file_put_contents($dbPath, $time." ".trim($line)."\n", FILE_APPEND);
 							}
 						}
+						chown($dbPath, $user);
+						chgrp($dbPath, $group);
 					}
 				}
 			}
