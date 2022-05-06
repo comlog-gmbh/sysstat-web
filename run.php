@@ -67,107 +67,114 @@ if ($mode == 'init') {
 	if ($handle = @opendir($pluginsDir)) {
 		while (false !== ($entry = readdir($handle))) {
 			$plugin = $pluginsDir . DIRECTORY_SEPARATOR . $entry;
-			if (is_link($plugin)) $plugin = readlink($plugin);
+			//if (is_link($plugin)) $plugin = readlink($plugin);
 
-			if (is_file($plugin) && is_executable($plugin)) {
-				$cmd = '';
-				if (strtoupper(substr($entry, -4)) === '.PHP') $cmd .= 'php ';
-				$cmd .= '"'.$plugin.'" config';
-				$res = array(
-					0 => array("pipe", "r"),
-					1 => array("pipe", "w"),
-					2 => array("pipe", "w")
-				);
+			if (is_file($plugin)) {
+				if (is_executable($plugin)) {
+					$cmd = '';
+					if (strtoupper(substr($entry, -4)) === '.PHP') $cmd .= 'php ';
+					$cmd .= '"'.$plugin.'" config';
+					$res = array(
+						0 => array("pipe", "r"),
+						1 => array("pipe", "w"),
+						2 => array("pipe", "w")
+					);
 
-				$process = proc_open($cmd, $res, $pipes);
-				if (is_resource($process)) {
-					$std_output = stream_get_contents($pipes[1]);
-					$err_output = stream_get_contents($pipes[2]);
-					$stat = proc_get_status($process);
-					fclose($pipes[1]);
-					fclose($pipes[2]);
-					$proc_value = proc_close( $process);
+					//echo "run $cmd\n";
 
-					if ($err_output) {
-						error_log("Process $plugin exit with code ".$stat['exitcode'].":\n".$err_output);
-					}
+					$process = proc_open($cmd, $res, $pipes);
+					if (is_resource($process)) {
+						$std_output = stream_get_contents($pipes[1]);
+						$err_output = stream_get_contents($pipes[2]);
+						$stat = proc_get_status($process);
+						fclose($pipes[1]);
+						fclose($pipes[2]);
+						$proc_value = proc_close( $process);
 
-					if ($std_output) {
-						// Munin config
-						if (strpos($std_output, 'graph_') !== false) {
-							$lines = explode("\n", $std_output);
-							//print_r($lines);
-							$DBConfigItem = [
-								'type' => 'line',
-								'options' => [
-									"animation" => false
-								],
-								'data' => [],
-							];
-							$datasets = [];
-							foreach ($lines as $i=>$line) {
-								$split = strpos($line, ' ');
-								$name = substr($line, 0, $split);
-								$value = trim(substr($line, $split+1));
-								if (strpos($name, 'graph_') !== false) {
-									$name = substr($name, 6);
-									switch ($name) {
-										// TODO Prüfen was verwendet werden kann
-										case 'args':
-										case 'scale':
-											$name = null;
-											break;
-										case 'vlabel':
-											$name = null;
-											if (!$DBConfigItem['options']) $DBConfigItem['options'] = [];
-											if (!$DBConfigItem['options']['scales']) $DBConfigItem['options']['scales'] = [];
-											if (!$DBConfigItem['options']['scales']['y']) $DBConfigItem['options']['scales']['y'] = [];
-											$DBConfigItem['options']['scales']['y']['title'] = [
-												'display' => true,
-												'text' => $value
-											];
-											break;
-										/*case 'title':
-											$name = null;
-											if (!$DBConfigItem['options']['plugins']) $DBConfigItem['options']['plugins'] = [];
-											$DBConfigItem['options']['plugins']['title'] = [
-												'display' => true,
-												'text' => $value
-											];
-											break;*/
+						if ($err_output) {
+							error_log("Process $plugin exit with code ".$stat['exitcode'].":\n".$err_output);
+						}
+
+						if ($std_output) {
+							// Munin config
+							if (strpos($std_output, 'graph_') !== false) {
+								$lines = explode("\n", $std_output);
+								//print_r($lines);
+								$DBConfigItem = [
+									'type' => 'line',
+									'options' => [
+										"animation" => false
+									],
+									'data' => [],
+								];
+								$datasets = [];
+								foreach ($lines as $i=>$line) {
+									$split = strpos($line, ' ');
+									$name = substr($line, 0, $split);
+									$value = trim(substr($line, $split+1));
+									if (strpos($name, 'graph_') !== false) {
+										$name = substr($name, 6);
+										switch ($name) {
+											// TODO Prüfen was verwendet werden kann
+											case 'args':
+											case 'scale':
+												$name = null;
+												break;
+											case 'vlabel':
+												$name = null;
+												if (!$DBConfigItem['options']) $DBConfigItem['options'] = [];
+												if (!$DBConfigItem['options']['scales']) $DBConfigItem['options']['scales'] = [];
+												if (!$DBConfigItem['options']['scales']['y']) $DBConfigItem['options']['scales']['y'] = [];
+												$DBConfigItem['options']['scales']['y']['title'] = [
+													'display' => true,
+													'text' => $value
+												];
+												break;
+											/*case 'title':
+												$name = null;
+												if (!$DBConfigItem['options']['plugins']) $DBConfigItem['options']['plugins'] = [];
+												$DBConfigItem['options']['plugins']['title'] = [
+													'display' => true,
+													'text' => $value
+												];
+												break;*/
+										}
+
+										if ($name) {
+											$DBConfigItem[$name] = $value;
+										}
 									}
+									else if (($dot = strpos($name, '.')) !== false) {
+										$gname = substr($name, 0, $dot);
+										$gprop = substr($name, $dot+1);
 
-									if ($name) {
-										$DBConfigItem[$name] = $value;
+										switch ($gprop) {
+											case 'draw':
+												if (strtoupper($value) == 'AREA') {
+													$gprop = 'fill';
+													$value = true;
+												}
+												break;
+										}
+
+										if ($gprop) {
+											if (!isset($datasets[$gname])) $datasets[$gname] = [
+												'id' => $gname
+											];
+											$datasets[$gname][$gprop] = $value;
+										}
 									}
 								}
-								else if (($dot = strpos($name, '.')) !== false) {
-									$gname = substr($name, 0, $dot);
-									$gprop = substr($name, $dot+1);
-
-									switch ($gprop) {
-										case 'draw':
-											if (strtoupper($value) == 'AREA') {
-												$gprop = 'fill';
-												$value = true;
-											}
-											break;
-									}
-
-									if ($gprop) {
-										if (!isset($datasets[$gname])) $datasets[$gname] = [
-											'id' => $gname
-										];
-										$datasets[$gname][$gprop] = $value;
-									}
-								}
+								$DBConfigItem['data']['datasets'] = array_values($datasets);
+								$DBConfig[$entry] = $DBConfigItem;
 							}
-							$DBConfigItem['data']['datasets'] = array_values($datasets);
-							$DBConfig[$entry] = $DBConfigItem;
+							else {
+								$DBConfig[$entry] = json_decode($std_output);
+							}
 						}
-						else {
-							$DBConfig[$entry] = json_decode($std_output);
-						}
+					}
+					else {
+						if ($entry != 'dummy') error_log("ERROR: Plugin $plugin not executable!");
 					}
 				}
 			}
@@ -192,44 +199,49 @@ else {
 		while (false !== ($entry = readdir($handle))) {
 			$plugin = $pluginsDir . DIRECTORY_SEPARATOR . $entry;
 			$dbPath = $dbDir.DIRECTORY_SEPARATOR.$entry.'.'.$date.'.db';
+			//if (is_link($plugin)) $plugin = readlink($plugin);
 
-			if (is_link($plugin)) $plugin = readlink($plugin);
+			if (is_file($plugin)) {
+				if (is_executable($plugin)) {
+					$cmd = '';
+					if (strtoupper(substr($entry, -4)) === '.PHP') $cmd .= 'php ';
+					$cmd .= '"'.$plugin.'"';
+					$res = array(
+						0 => array("pipe", "r"),
+						1 => array("pipe", "w"),
+						2 => array("pipe", "w")
+					);
 
-			if (is_file($plugin) && is_executable($plugin)) {
-				$cmd = '';
-				if (strtoupper(substr($entry, -4)) === '.PHP') $cmd .= 'php ';
-				$cmd .= '"'.$plugin.'"';
-				$res = array(
-					0 => array("pipe", "r"),
-					1 => array("pipe", "w"),
-					2 => array("pipe", "w")
-				);
+					//echo "run $cmd\n";
+					$process = proc_open($cmd, $res, $pipes);
+					if (is_resource($process)) {
+						$std_output = stream_get_contents($pipes[1]);
+						$err_output = stream_get_contents($pipes[2]);
+						fclose($pipes[1]);
+						fclose($pipes[2]);
+						$proc_value = proc_close($process);
 
-				$process = proc_open($cmd, $res, $pipes);
-				if (is_resource($process)) {
-					$std_output = stream_get_contents($pipes[1]);
-					$err_output = stream_get_contents($pipes[2]);
-					fclose($pipes[1]);
-					fclose($pipes[2]);
-					$proc_value = proc_close($process);
+						if ($err_output) error_log($err_output);
 
-					if ($err_output) error_log($err_output);
-
-					if ($std_output) {
-						$lines = explode("\n", $std_output);
-						foreach ($lines as $line) {
-							$line = trim($line);
-							if ($line === '') continue;
-							if (strpos($line, '.value') !== false) {
-								file_put_contents($dbPath, $time." ".trim($line)."\n", FILE_APPEND);
+						if ($std_output) {
+							$lines = explode("\n", $std_output);
+							foreach ($lines as $line) {
+								$line = trim($line);
+								if ($line === '') continue;
+								if (strpos($line, '.value') !== false) {
+									file_put_contents($dbPath, $time." ".trim($line)."\n", FILE_APPEND);
+								}
+								else if (preg_match('/^[a-zA-Z0-9_-]+ [0-9]+/', $line) !== false) {
+									file_put_contents($dbPath, $time." ".trim($line)."\n", FILE_APPEND);
+								}
 							}
-							else if (preg_match('/^[a-zA-Z0-9_-]+ [0-9]+/', $line) !== false) {
-								file_put_contents($dbPath, $time." ".trim($line)."\n", FILE_APPEND);
-							}
+							chown($dbPath, $user);
+							chgrp($dbPath, $group);
 						}
-						chown($dbPath, $user);
-						chgrp($dbPath, $group);
 					}
+				}
+				else {
+					if ($entry != 'dummy') error_log("ERROR: Plugin $plugin not executable!");
 				}
 			}
 		}
