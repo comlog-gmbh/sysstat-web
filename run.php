@@ -155,9 +155,11 @@ if ($mode == 'init') {
 		closedir($handle);
 
 		file_put_contents($DBConfigFile, json_encode($DBConfig, JSON_PRETTY_PRINT));
+		echo "$DBConfigFile writen\n";
 	}
 	else {
 		error_log("Can't open dir $pluginsDir");
+		echo "Can't open dir $pluginsDir\n";
 	}
 }
 // Statistiken schreiben
