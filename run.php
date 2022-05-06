@@ -155,6 +155,9 @@ if ($mode == 'init') {
 													$value = true;
 												}
 												break;
+											case 'type':
+												$gprop = null;
+												break;
 										}
 
 										if ($gprop) {
