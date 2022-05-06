@@ -67,6 +67,7 @@ if ($mode == 'init') {
 	if ($handle = @opendir($pluginsDir)) {
 		while (false !== ($entry = readdir($handle))) {
 			$plugin = $pluginsDir . DIRECTORY_SEPARATOR . $entry;
+			if (is_link($plugin)) $plugin = readlink($plugin);
 
 			if (is_file($plugin)) {
 				$cmd = '';
@@ -191,6 +192,8 @@ else {
 		while (false !== ($entry = readdir($handle))) {
 			$plugin = $pluginsDir . DIRECTORY_SEPARATOR . $entry;
 			$dbPath = $dbDir.DIRECTORY_SEPARATOR.$entry.'.'.$date.'.db';
+
+			if (is_link($plugin)) $plugin = readlink($plugin);
 
 			if (is_file($plugin)) {
 				$cmd = '';
