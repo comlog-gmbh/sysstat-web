@@ -11,13 +11,21 @@ $logdir = realpath(ROOTFS.DIRECTORY_SEPARATOR.'logs');
 $logfile = $logdir.DIRECTORY_SEPARATOR.'sysstat-web.log';
 
 // Crate folders
-if (!is_dir($logdir)) mkdir($logdir, 0777, true);
-if (!is_dir($dbDir)) mkdir($dbDir, 0777, true);
+if (!is_dir($logdir)) {
+	if (!mkdir($logdir, 0777, true)) {
+		echo "can't crate $logdir folder";
+	}
+}
+if (!is_dir($dbDir)) {
+	if (mkdir($dbDir, 0777, true)) {
+		echo "can't crate $dbDir folder";
+	}
+}
 
 // Log rotation
 if (filesize($logfile) >= 100 * 1000000) rename($logfile, $logfile.date('Y-m-d_His'));
 
-ini_set("error_log", $logfile);
+if (!is_dir($dbDir)) ini_set("error_log", $logfile);
 
 function onError($errno = 0, $errstr = '', $errfile = null, $errline = null, $errcontext = null) {
 	if ($errstr || $errfile) error_log($errstr.' in '.$errfile.':'.$errline);
