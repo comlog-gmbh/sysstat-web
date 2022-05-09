@@ -237,6 +237,7 @@ window.SysstatWeb = new (function () {
 	}
 
 	this.addMenuItem = function(id, config) {
+		if (!config) return false;
 		var jMenu = this.addMenuCat(config.category);
 		jMenu.append(
 			$('<a />')
@@ -249,6 +250,7 @@ window.SysstatWeb = new (function () {
 					_this.view(jThis.data('id'), jThis.data('config'));
 				})
 		)
+		return true;
 	};
 
 	$(function () {
