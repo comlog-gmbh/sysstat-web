@@ -82,10 +82,7 @@ window.SysstatWeb = new (function () {
 
 	this.toTime = function (toTime) {
 		if (typeof toTime == "string") toTime = new Date(toTime);
-		if (!toTime) {
-			toTime = new Date();
-			toTime.setHours(toTime.getHours() - 24)
-		}
+		if (!toTime) toTime = new Date();
 		return toTime;
 	};
 
