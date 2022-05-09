@@ -190,8 +190,27 @@ window.SysstatWeb = new (function () {
 				}
 			}
 
+			var last_label = null, cur_label = null, length = Object.keys(data).length;
 			for (var time in data) {
-				config.data.labels.push(time);
+				if (length < 36) {
+					cur_label = time.substring(0, 16);
+				}
+				if (length < 288) {
+					cur_label = time.substring(0, 13);
+				}
+				else {
+					cur_label = time.substring(0, 11);
+				}
+
+				if (last_label != cur_label) {
+					config.data.labels.push(time);
+					last_label = cur_label;
+				}
+				else {
+					config.data.labels.push('');
+				}
+
+				//config.data.labels.push(time);
 				for (var bar in data[time]) {
 					var index = dsmap[bar];
 					if (typeof index !== "undefined") {
