@@ -196,9 +196,19 @@ window.SysstatWeb = new (function () {
 		jSystatWebNav = $('#SystatWebNav');
 		jSystatWebContent = $('#SystatWebContent');
 
-		$.getJSON('db/config.json', function (Config) {
-			for (var i in Config) {
-				_this.addMenuItem(i, Config[i]);
+		$.ajax({
+			url: 'db/config.json?ts='+(new Date()).toISOString(),
+			dataType: 'json',
+			cache: false,
+			success: function (Config) {
+				for (var i in Config) {
+					_this.addMenuItem(i, Config[i]);
+				}
+			},
+			error: function (req, emsg, ecode) {
+				jSystatWebContent.append(
+					$('<pre />').append(emsg).append(ecode)
+				);
 			}
 		});
 	});
