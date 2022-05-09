@@ -2,7 +2,9 @@ window.SysstatWeb = new (function () {
 	var
 		_this = this,
 		jSystatWebNav,
-		jSystatWebContent
+		jSystatWebContent,
+		jSystatWebTitle,
+		jSystatWebBody
 	;
 
 	this.stringToHash = function (str, asString, seed) {
@@ -69,6 +71,24 @@ window.SysstatWeb = new (function () {
 		);
 	}
 
+	this.fromTime = function (fromTime) {
+		if (typeof fromTime == "string") fromTime = new Date(fromTime);
+		if (!fromTime) {
+			fromTime = new Date();
+			fromTime.setHours(fromTime.getHours() - 24);
+		}
+		return fromTime;
+	};
+
+	this.toTime = function (toTime) {
+		if (typeof toTime == "string") toTime = new Date(toTime);
+		if (!toTime) {
+			toTime = new Date();
+			toTime.setHours(toTime.getHours() - 24)
+		}
+		return toTime;
+	};
+
 	/**
 	 * Load data
 	 * @param {string} id
@@ -77,11 +97,8 @@ window.SysstatWeb = new (function () {
 	 * @param {(any) => void} cb
 	 */
 	this.load = function(id, fromTime, toTime, cb) {
-		if (!toTime) toTime = new Date();
-		if (!fromTime) {
-			fromTime = new Date();
-			fromTime.setHours(fromTime.getHours() - 24)
-		}
+		fromTime = this.fromTime(fromTime);
+		toTime = this.toTime(toTime);
 
 		var dates = [this.toDateString(fromTime)];
 		var toDateNum = this.toDateNumber(toTime);
@@ -117,14 +134,54 @@ window.SysstatWeb = new (function () {
 
 		// Get db data
 		_q();
-	}
+	};
 
-	this.view = function (id, config) {
-		jSystatWebContent.html('<h5 class="text-primary border-bottom border-primary py-2">'+config.title+'</h5>');
+
+	this.viewTitle = function (id, config, fromTime, toTime) {
+		var fromTime = this.fromTime(fromTime);
+		var toTime = this.toTime(toTime);
+
+		var fromTimeInput = $('<input type="datetime-local" name="fromTime">')
+			.addClass('form-control form-control-sm d-inline-block')
+			.val(fromTime.toISOString().substring(0, 16))
+		;
+
+		var toTimeInput = $('<input type="datetime-local" name="toTime">')
+			.addClass('form-control form-control-sm d-inline-block')
+			.val(toTime.toISOString().substring(0, 16))
+		;
+
+		var _change = function () {
+			_this.viewBody(id, config, fromTimeInput.val(), toTimeInput.val());
+		};
+
+		fromTimeInput.change(_change);
+		toTimeInput.change(_change);
+
+		jSystatWebTitle.html(
+			$('<h5 />')
+				.addClass('text-primary border-bottom border-primary py-2')
+				.text(config.title)
+				.append(
+					$('<div class="float-end row" />')
+						.append(
+							$('<div class="col" />').append(fromTimeInput)
+						)
+						.append(
+							$('<div class="col" />').append(toTimeInput)
+						)
+				)
+		);
+	};
+
+	this.viewBody = function (id, config, fromTime, toTime) {
+		fromTime = this.fromTime(fromTime);
+		toTime = this.toTime(toTime);
+
 		var jSpinner = this.spinner();
-		jSystatWebContent.append(jSpinner);
+		jSystatWebBody.html(jSpinner);
 
-		this.load(id, null, null, function (data) {
+		this.load(id, fromTime, toTime, function (data) {
 			var dsmap = {};
 
 			config.data.labels = [];
@@ -155,6 +212,11 @@ window.SysstatWeb = new (function () {
 				config
 			);
 		});
+	};
+
+	this.view = function (id, config, fromTime, toTime) {
+		this.viewTitle(id, config, fromTime, toTime);
+		this.viewBody(id, config, fromTime, toTime);
 	};
 
 	this.addMenuCat = function (name) {
@@ -195,6 +257,8 @@ window.SysstatWeb = new (function () {
 	$(function () {
 		jSystatWebNav = $('#SystatWebNav');
 		jSystatWebContent = $('#SystatWebContent');
+		jSystatWebTitle = $('#SystatWebTitle');
+		jSystatWebBody = $('#SystatWebBody');
 
 		$.ajax({
 			url: 'db/config.json?ts='+(new Date()).toISOString(),
@@ -206,7 +270,7 @@ window.SysstatWeb = new (function () {
 				}
 			},
 			error: function (req, emsg, ecode) {
-				jSystatWebContent.append(
+				jSystatWebBody.append(
 					$('<pre />').append(emsg).append(ecode)
 				);
 			}

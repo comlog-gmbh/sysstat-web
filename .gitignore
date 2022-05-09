@@ -1,3 +1,5 @@
 /.idea
 /httpdocs/db
 /logs
+/plugins/example.php
+/plugins/example2.php

@@ -7,6 +7,7 @@ var htdocs = __dirname+path.sep+'httpdocs';
 http.createServer(function (request, response) {
 	var filePath = htdocs + path.sep + (request.url == '/' ? 'index.html' : request.url);
 	filePath = path.normalize(filePath);
+	if (filePath.indexOf('?') > -1) filePath = filePath.substring(0, filePath.indexOf('?'));
 	var extname = path.extname(filePath);
 	var contentType = 'text/html';
 	switch (extname) {

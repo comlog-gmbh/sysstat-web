@@ -70,9 +70,10 @@ if ($mode == 'init') {
 			//if (is_link($plugin)) $plugin = readlink($plugin);
 
 			if (is_file($plugin)) {
-				if (is_executable($plugin)) {
+				$isPHP = strtoupper(substr($entry, -4)) === '.PHP';
+				if ($isPHP || is_executable($plugin)) {
 					$cmd = '';
-					if (strtoupper(substr($entry, -4)) === '.PHP') $cmd .= 'php ';
+					if ($isPHP) $cmd .= 'php ';
 					$cmd .= '"'.$plugin.'" config';
 					$res = array(
 						0 => array("pipe", "r"),
@@ -205,9 +206,10 @@ else {
 			//if (is_link($plugin)) $plugin = readlink($plugin);
 
 			if (is_file($plugin)) {
-				if (is_executable($plugin)) {
+				$isPHP = strtoupper(substr($entry, -4)) === '.PHP';
+				if ($isPHP || is_executable($plugin)) {
 					$cmd = '';
-					if (strtoupper(substr($entry, -4)) === '.PHP') $cmd .= 'php ';
+					if ($isPHP) $cmd .= 'php ';
 					$cmd .= '"'.$plugin.'"';
 					$res = array(
 						0 => array("pipe", "r"),
