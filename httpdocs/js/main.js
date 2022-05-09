@@ -97,6 +97,7 @@ window.SysstatWeb = new (function () {
 				var ts = dates.shift();
 				var opts = {
 					url: 'db/'+id+'.'+ts+'.db?ts='+(new Date()).toISOString(),
+					cache:false,
 					success: function (data) {
 						data = _this.parseData(ts, data);
 						$.extend(StatData, data);
