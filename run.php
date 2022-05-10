@@ -7,16 +7,90 @@ define("ROOTFS", dirname(__FILE__));
 
 // Paths
 $pluginsDir = ROOTFS.DIRECTORY_SEPARATOR.'plugins';
+$pluginsConfigDir = ROOTFS.DIRECTORY_SEPARATOR.'plugins'.DIRECTORY_SEPARATOR.'config';
 $httpdocs = ROOTFS.DIRECTORY_SEPARATOR.'httpdocs';
 $dbDir = $httpdocs.DIRECTORY_SEPARATOR.'db';
 $logdir = ROOTFS.DIRECTORY_SEPARATOR.'logs';
 $logfile = $logdir.DIRECTORY_SEPARATOR.'sysstat-web.log';
 $user = 'www-data';
 $group = 'www-data';
-$plugin_ignore = ['dummy', 'plugin.sh'];
+$pluginIgnore = ['dummy', 'plugin.sh'];
+$pluginConfig = [];
+
 $env = array_merge($_ENV, [
 	'MUNIN_LIBDIR' => ROOTFS.DIRECTORY_SEPARATOR.'plugins-available'.DIRECTORY_SEPARATOR.'munin',
 ]);
+
+$env['PATH'] = getenv('PATH');
+
+// Sysvars
+$mode = isset($argv) && in_array('init', $argv) ? 'init' : (isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '');
+$debug = isset($argv) && in_array('debug', $argv) || isset($_REQUEST['debug']);
+
+/**
+ * @param $line
+ * @return array(var: string, value: string, cat: null|string)
+ */
+function parse_munin_line($line) {
+	$line = trim($line);
+	$spos = strpos($line, ' ');
+	if ($spos === false) $spos = strlen($line);
+	$res = [
+		'var' => substr($line, 0, $spos),
+		'value' => trim(substr($line, $spos)),
+		'cat' => null
+	];
+
+	if (($spos = strpos($res['var'], '.')) !== false) {
+		$res['cat'] = substr($res['var'], 0, $spos);
+		$res['var'] = substr($res['var'], $spos+1);
+	}
+
+	return $res;
+}
+
+// Plugins config
+if ($handle = @opendir($pluginsConfigDir)) {
+	while (false !== ($entry = readdir($handle))) {
+		$cpath = $pluginsConfigDir.DIRECTORY_SEPARATOR.$entry;
+		if (!is_file($cpath) || $entry == '..' || $entry == '.') continue;
+
+		// JSON Config
+		if (stripos($entry, '.json')) {
+			$cfg = json_decode(file_get_contents($cpath), true);
+			$pluginConfig = array_merge($pluginConfig, $cfg);
+		}
+		// Munin config
+		else {
+			$fp = @fopen($cpath, "r");
+			if ($fp) {
+				$section = null;
+				while (($buffer = fgets($fp, 4096)) !== false) {
+					if (strpos($buffer, '[') === 0) {
+						$section = substr($buffer, 1, strrpos($buffer, ']')-1);
+						if (!$pluginConfig[$section]) $pluginConfig[$section] = [];
+					}
+					else {
+						$row = parse_munin_line($buffer);
+
+						if ($row['cat']) {
+							if (!$pluginConfig[$section][$row['cat']]) $pluginConfig[$section][$row['cat']] = [];
+							$pluginConfig[$section][$row['cat']][$row['var']] = $row['value'];
+						}
+						else {
+							$pluginConfig[$section][$row['var']] = $row['value'];
+						}
+					}
+				}
+				if (!feof($fp)) {
+					if ($debug) echo "ERROR: unexpected  fgets() error\n";
+					error_log("ERROR: unexpected  fgets() error");
+				}
+				fclose($fp);
+			}
+		}
+	}
+}
 
 // Crate folders
 if (!is_dir($logdir)) {
@@ -52,8 +126,6 @@ function onException($exception) {
 set_exception_handler('onException');
 set_error_handler('onError', E_ALL & ~E_NOTICE);
 
-$mode = isset($argv) && in_array('init', $argv) ? 'init' : (isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '');
-$debug = isset($argv) && in_array('debug', $argv) || isset($_REQUEST['debug']);
 if (!defined('STDIN')) header("Content-Type: text/plain; charset=UTF-8");
 
 $date  = date('Y-m-d');
@@ -71,7 +143,7 @@ if ($mode == 'init') {
 
 	if ($handle = @opendir($pluginsDir)) {
 		while (false !== ($entry = readdir($handle))) {
-			if (in_array($entry, $plugin_ignore) || $entry == '..' || $entry == '.') continue;
+			if (in_array($entry, $pluginIgnore) || $entry == '..' || $entry == '.') continue;
 
 			$plugin = $pluginsDir . DIRECTORY_SEPARATOR . $entry;
 			//if (is_link($plugin)) $plugin = readlink($plugin);
@@ -131,29 +203,27 @@ if ($mode == 'init') {
 								];
 								$datasets = [];
 								foreach ($lines as $i=>$line) {
-									$split = strpos($line, ' ');
-									$name = substr($line, 0, $split);
-									$value = trim(substr($line, $split+1));
-									if (strpos($name, 'graph_') !== false) {
-										$name = substr($name, 6);
-										switch ($name) {
+									$row = parse_munin_line($line);
+									if (strpos($row['var'], 'graph_') !== false) {
+										$row['var'] = substr($row['var'], 6);
+										switch ($row['var']) {
 											// TODO Prüfen was verwendet werden kann
 											case 'args':
 											case 'scale':
-												$name = null;
+												$row['var'] = null;
 												break;
 											case 'vlabel':
-												$name = null;
+												$row['var'] = null;
 												if (!$DBConfigItem['options']) $DBConfigItem['options'] = [];
 												if (!$DBConfigItem['options']['scales']) $DBConfigItem['options']['scales'] = [];
 												if (!$DBConfigItem['options']['scales']['y']) $DBConfigItem['options']['scales']['y'] = [];
 												$DBConfigItem['options']['scales']['y']['title'] = [
 													'display' => true,
-													'text' => $value
+													'text' => $row['value']
 												];
 												break;
 											/*case 'title':
-												$name = null;
+												$row['var'] = null;
 												if (!$DBConfigItem['options']['plugins']) $DBConfigItem['options']['plugins'] = [];
 												$DBConfigItem['options']['plugins']['title'] = [
 													'display' => true,
@@ -162,31 +232,28 @@ if ($mode == 'init') {
 												break;*/
 										}
 
-										if ($name) {
-											$DBConfigItem[$name] = $value;
+										if ($row['var']) {
+											$DBConfigItem[$row['var']] = $row['value'];
 										}
 									}
-									else if (($dot = strpos($name, '.')) !== false) {
-										$gname = substr($name, 0, $dot);
-										$gprop = substr($name, $dot+1);
-
-										switch ($gprop) {
+									else {
+										switch ($row['var']) {
 											case 'draw':
-												if (strtoupper($value) == 'AREA') {
-													$gprop = 'fill';
-													$value = true;
+												if (strtoupper($row['value']) == 'AREA') {
+													$row['var'] = 'fill';
+													$row['value'] = true;
 												}
 												break;
 											case 'type':
-												$gprop = null;
+												$row['var'] = null;
 												break;
 										}
 
-										if ($gprop) {
-											if (!isset($datasets[$gname])) $datasets[$gname] = [
-												'id' => $gname
+										if ($row['var']) {
+											if (!isset($datasets[$row['cat']])) $datasets[$row['cat']] = [
+												'id' => $row['cat']
 											];
-											$datasets[$gname][$gprop] = $value;
+											$datasets[$row['cat']][$row['var']] = $row['value'];
 										}
 									}
 								}
@@ -223,7 +290,7 @@ if ($mode == 'init') {
 else {
 	if ($handle = @opendir($pluginsDir)) {
 		while (false !== ($entry = readdir($handle))) {
-			if (in_array($entry, $plugin_ignore) || $entry == '..' || $entry == '.') continue;
+			if (in_array($entry, $pluginIgnore) || $entry == '..' || $entry == '.') continue;
 
 			$plugin = $pluginsDir . DIRECTORY_SEPARATOR . $entry;
 			$dbPath = $dbDir.DIRECTORY_SEPARATOR.$entry.'.'.$date.'.db';
