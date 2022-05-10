@@ -1,0 +1,96 @@
+#!/bin/sh
+# -*- sh -*-
+
+: <<=cut 
+
+=head1 NAME
+
+acpi - Munin plugin to monitor the temperature in different ACPI Thermal zones.
+
+=head1 APPLICABLE SYSTEMS
+
+Linux systems with ACPI support.
+
+=head1 CONFIGURATION
+
+Load the 'thermal' kernel module and the plugin gets the thermal zones from /sys/class/thermal/thermal_zone*/ automagically.
+
+=head1 USAGE
+
+Link this plugin to /etc/munin/plugins/ and restart the munin-node.
+
+=head1 INTERPRETATION
+
+The plugin shows the temperature from the different thermal zones. 
+
+=head1 MAGIC MARKERS
+
+ #%# family=auto
+ #%# capabilities=autoconf
+
+=head1 BUGS
+
+None known.
+
+=head1 VERSION
+
+v1.0 - 2006-11-13
+v1.1 - 2018-03-24
+
+=head1 AUTHOR
+
+Nicolai Langfeldt (janl@linpro.no) 2006-11-13
+
+=head1 LICENSE
+
+GPLv2
+
+=cut
+
+
+# directories containing thermal zone information
+ATZ=$(find /sys/class/thermal/ -maxdepth 1 -name "thermal_zone*")
+
+
+do_ () { # Fetch
+    for ZONE in $ATZ; do
+         TEMP=$(cat "$ZONE/temp")
+         echo "$(basename "$ZONE").value $(echo "$TEMP" | awk '{print $1/1000}')"
+    done
+    exit 0
+}
+
+do_config () {
+    echo "graph_title ACPI Thermal zone temperatures"
+    echo "graph_vlabel Celsius"
+    echo "graph_category sensors"
+    echo "graph_info This graph shows the temperature in different ACPI Thermal zones.  If there is only one it will usually be the case temperature."
+    for ZONE in $ATZ; do
+         TYPE=$(cat "$ZONE/type")
+         echo "$(basename "$ZONE").label $TYPE"
+    done
+    # print values immediately if dirtyconfig is supported
+    if [ "${MUNIN_CAP_DIRTYCONFIG:-0}" = 1 ]; then do_; fi
+}
+
+do_autoconf () {
+    if [ -z "$ATZ" ]; then
+        echo "no (failed to find thermal zones below /sys/class/thermal/thermal_zone*)"
+	exit 0
+    fi
+    for f in $ATZ; do
+	if [ ! -r "$f/temp" ]; then
+	    echo "no (cannot read $f/temp)"
+	    exit 0
+	fi
+    done
+    echo yes
+    exit 0
+}
+
+case $1 in
+    config|autoconf|'')
+	"do_$1"
+esac
+
+exit $?
