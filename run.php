@@ -15,7 +15,7 @@ $user = 'www-data';
 $group = 'www-data';
 $plugin_ignore = ['dummy', 'plugin.sh'];
 $env = array_merge($_ENV, [
-	'MUNIN_LIBDIR' => ROOTFS.DIRECTORY_SEPARATOR.'munin',
+	'MUNIN_LIBDIR' => ROOTFS.DIRECTORY_SEPARATOR.'plugins-available'.DIRECTORY_SEPARATOR.'munin',
 ]);
 
 // Crate folders
