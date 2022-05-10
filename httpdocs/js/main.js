@@ -192,7 +192,7 @@ window.SysstatWeb = new (function () {
 
 			var last_label = null, cur_label = null, length = Object.keys(data).length;
 			for (var time in data) {
-				if (length <= 36) {
+				/*if (length <= 36) {
 					cur_label = time.substring(0, 16);
 				}
 				if (length <= 288) {
@@ -208,9 +208,9 @@ window.SysstatWeb = new (function () {
 				}
 				else {
 					config.data.labels.push('');
-				}
+				}*/
 
-				//config.data.labels.push(time);
+				config.data.labels.push(time);
 				for (var bar in data[time]) {
 					var index = dsmap[bar];
 					if (typeof index !== "undefined") {
