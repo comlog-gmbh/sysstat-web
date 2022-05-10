@@ -13,6 +13,7 @@ $logdir = ROOTFS.DIRECTORY_SEPARATOR.'logs';
 $logfile = $logdir.DIRECTORY_SEPARATOR.'sysstat-web.log';
 $user = 'www-data';
 $group = 'www-data';
+$plugin_ignore = ['dummy', 'plugin.sh'];
 
 // Crate folders
 if (!is_dir($logdir)) {
@@ -67,7 +68,7 @@ if ($mode == 'init') {
 
 	if ($handle = @opendir($pluginsDir)) {
 		while (false !== ($entry = readdir($handle))) {
-			if ($entry == 'dummy' || $entry == '..' || $entry == '.') continue;
+			if (in_array($entry, $plugin_ignore) || $entry == '..' || $entry == '.') continue;
 
 			$plugin = $pluginsDir . DIRECTORY_SEPARATOR . $entry;
 			//if (is_link($plugin)) $plugin = readlink($plugin);
@@ -214,7 +215,7 @@ if ($mode == 'init') {
 else {
 	if ($handle = @opendir($pluginsDir)) {
 		while (false !== ($entry = readdir($handle))) {
-			if ($entry == 'dummy' || $entry == '..' || $entry == '.') continue;
+			if (in_array($entry, $plugin_ignore) || $entry == '..' || $entry == '.') continue;
 
 			$plugin = $pluginsDir . DIRECTORY_SEPARATOR . $entry;
 			$dbPath = $dbDir.DIRECTORY_SEPARATOR.$entry.'.'.$date.'.db';
