@@ -49,6 +49,19 @@ function parse_munin_line($line) {
 	return $res;
 }
 
+function getPluginConfig($plugin) {
+	global $pluginConfig;
+	$res = [];
+	foreach ($pluginConfig as $match=>$config) {
+		if (fnmatch($match, $plugin)) {
+			$res = $config;
+			break;
+		}
+	}
+
+	return $res;
+}
+
 // Plugins config
 if ($handle = @opendir($pluginsConfigDir)) {
 	while (false !== ($entry = readdir($handle))) {
@@ -163,13 +176,17 @@ if ($mode == 'init') {
 						2 => array("pipe", "w")
 					);
 
+					$config = getPluginConfig($entry);
+					$plugin_env = $env;
+					if ($config && $config['env']) $plugin_env = array_merge($plugin_env, $config['env']);
+
 					//echo "run $cmd\n";
 					$process = proc_open(
 						$cmd,
 						$res,
 						$pipes,
 						null,
-						$env
+						$plugin_env
 					);
 					if (is_resource($process)) {
 						$std_output = stream_get_contents($pipes[1]);
@@ -309,12 +326,17 @@ else {
 					);
 
 					if ($debug) echo "COMMAND: $cmd \n";
+
+					$config = getPluginConfig($entry);
+					$plugin_env = $env;
+					if ($config && $config['env']) $plugin_env = array_merge($plugin_env, $config['env']);
+
 					$process = proc_open(
 						$cmd,
 						$res,
 						$pipes,
 						null,
-						$env
+						$plugin_env
 					);
 					if (is_resource($process)) {
 						$std_output = stream_get_contents($pipes[1]);
