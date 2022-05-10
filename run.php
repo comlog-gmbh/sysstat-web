@@ -14,6 +14,9 @@ $logfile = $logdir.DIRECTORY_SEPARATOR.'sysstat-web.log';
 $user = 'www-data';
 $group = 'www-data';
 $plugin_ignore = ['dummy', 'plugin.sh'];
+$env = array_merge($_ENV, [
+	'MUNIN_LIBDIR' => ROOTFS.DIRECTORY_SEPARATOR.'munin',
+]);
 
 // Crate folders
 if (!is_dir($logdir)) {
@@ -89,8 +92,13 @@ if ($mode == 'init') {
 					);
 
 					//echo "run $cmd\n";
-
-					$process = proc_open($cmd, $res, $pipes);
+					$process = proc_open(
+						$cmd,
+						$res,
+						$pipes,
+						null,
+						$env
+					);
 					if (is_resource($process)) {
 						$std_output = stream_get_contents($pipes[1]);
 						$err_output = stream_get_contents($pipes[2]);
@@ -234,7 +242,13 @@ else {
 					);
 
 					if ($debug) echo "COMMAND: $cmd \n";
-					$process = proc_open($cmd, $res, $pipes);
+					$process = proc_open(
+						$cmd,
+						$res,
+						$pipes,
+						null,
+						$env
+					);
 					if (is_resource($process)) {
 						$std_output = stream_get_contents($pipes[1]);
 						$err_output = stream_get_contents($pipes[2]);

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# $PDIR=/usr/share/munin/plugins/
+
+if [ "$1" = "config" ]; then
+	/usr/sbin/munin-run --servicedir /usr/share/munin/plugins/ cpu config
+else
+	/usr/sbin/munin-run --servicedir /usr/share/munin/plugins/ cpu
+fi
