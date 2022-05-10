@@ -95,8 +95,8 @@ if ($mode == 'init') {
 						$err_output = stream_get_contents($pipes[2]);
 
 						if ($debug) {
-							echo 'STDOUT: '.$std_output."\n";
-							echo 'STDERR: '.$std_output."\n";
+							if ($std_output)  echo 'STDOUT: '.$std_output."\n";
+							if ($err_output) echo 'STDERR: '.$err_output."\n";
 						}
 
 						$stat = proc_get_status($process);
@@ -242,8 +242,8 @@ else {
 						$proc_value = proc_close($process);
 
 						if ($debug) {
-							echo 'STDOUT: '.$std_output."\n";
-							echo 'STDERR: '.$std_output."\n";
+							if ($std_output)  echo 'STDOUT: '.$std_output."\n";
+							if ($err_output) echo 'STDERR: '.$err_output."\n";
 						}
 
 						if ($err_output) error_log($err_output);
