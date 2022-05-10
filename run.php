@@ -49,6 +49,7 @@ set_exception_handler('onException');
 set_error_handler('onError', E_ALL & ~E_NOTICE);
 
 $mode = isset($argv) && in_array('init', $argv) ? 'init' : (isset($_REQUEST['mode']) ? $_REQUEST['mode'] : '');
+$debug = isset($argv) && in_array('debug', $argv) || isset($_REQUEST['debug']);
 if (!defined('STDIN')) header("Content-Type: text/plain; charset=UTF-8");
 
 $date  = date('Y-m-d');
@@ -66,6 +67,8 @@ if ($mode == 'init') {
 
 	if ($handle = @opendir($pluginsDir)) {
 		while (false !== ($entry = readdir($handle))) {
+			if ($entry == 'dummy' || $entry == '..' || $entry == '.') continue;
+
 			$plugin = $pluginsDir . DIRECTORY_SEPARATOR . $entry;
 			//if (is_link($plugin)) $plugin = readlink($plugin);
 
@@ -75,6 +78,9 @@ if ($mode == 'init') {
 					$cmd = '';
 					if ($isPHP) $cmd .= 'php ';
 					$cmd .= '"'.$plugin.'" config';
+
+					if ($debug) echo 'Command: '.$cmd."\n";
+
 					$res = array(
 						0 => array("pipe", "r"),
 						1 => array("pipe", "w"),
@@ -87,6 +93,12 @@ if ($mode == 'init') {
 					if (is_resource($process)) {
 						$std_output = stream_get_contents($pipes[1]);
 						$err_output = stream_get_contents($pipes[2]);
+
+						if ($debug) {
+							echo 'STDOUT: '.$std_output."\n";
+							echo 'STDERR: '.$std_output."\n";
+						}
+
 						$stat = proc_get_status($process);
 						fclose($pipes[1]);
 						fclose($pipes[2]);
@@ -178,7 +190,8 @@ if ($mode == 'init') {
 						}
 					}
 					else {
-						if ($entry != 'dummy') error_log("ERROR: Plugin $plugin not executable!");
+						error_log("ERROR: Plugin $plugin not executable!");
+						if ($debug) echo "ERROR: Plugin $plugin not executable!\n";
 					}
 				}
 			}
@@ -193,14 +206,16 @@ if ($mode == 'init') {
 		echo "$DBConfigFile writen\n";
 	}
 	else {
-		error_log("Can't open dir $pluginsDir");
-		echo "Can't open dir $pluginsDir\n";
+		error_log("ERROR: Can't open dir $pluginsDir");
+		if ($debug) echo "ERROR: Can't open dir $pluginsDir \n";
 	}
 }
 // Statistiken schreiben
 else {
 	if ($handle = @opendir($pluginsDir)) {
 		while (false !== ($entry = readdir($handle))) {
+			if ($entry == 'dummy' || $entry == '..' || $entry == '.') continue;
+
 			$plugin = $pluginsDir . DIRECTORY_SEPARATOR . $entry;
 			$dbPath = $dbDir.DIRECTORY_SEPARATOR.$entry.'.'.$date.'.db';
 			//if (is_link($plugin)) $plugin = readlink($plugin);
@@ -217,7 +232,7 @@ else {
 						2 => array("pipe", "w")
 					);
 
-					//echo "run $cmd\n";
+					if ($debug) echo "COMMAND: $cmd \n";
 					$process = proc_open($cmd, $res, $pipes);
 					if (is_resource($process)) {
 						$std_output = stream_get_contents($pipes[1]);
@@ -225,6 +240,11 @@ else {
 						fclose($pipes[1]);
 						fclose($pipes[2]);
 						$proc_value = proc_close($process);
+
+						if ($debug) {
+							echo 'STDOUT: '.$std_output."\n";
+							echo 'STDERR: '.$std_output."\n";
+						}
 
 						if ($err_output) error_log($err_output);
 
@@ -246,7 +266,8 @@ else {
 					}
 				}
 				else {
-					if ($entry != 'dummy') error_log("ERROR: Plugin $plugin not executable!");
+					error_log("ERROR: Plugin $plugin not executable!");
+					if ($debug) echo "ERROR: Plugin $plugin not executable!\n";
 				}
 			}
 		}
@@ -254,7 +275,7 @@ else {
 		closedir($handle);
 	}
 	else {
-		error_log("Can't open dir $pluginsDir");
+		error_log("ERROR: Can't open dir $pluginsDir");
+		echo "ERROR: Can't open dir $pluginsDir\n";
 	}
-
 }
