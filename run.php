@@ -377,6 +377,7 @@ else {
 								$line = trim($line);
 								if ($line === '') continue;
 								if (strpos($line, '.value') !== false) {
+									$line = str_replace(".value", "", $line);
 									file_put_contents($dbPath, $time." ".trim($line)."\n", FILE_APPEND);
 								}
 								else if (preg_match('/^[a-zA-Z0-9_-]+ [0-9]+/', $line) !== false) {
