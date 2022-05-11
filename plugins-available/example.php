@@ -17,6 +17,7 @@ if ($argv[1] == 'config') {
 	echo "stat1.draw AREA\n";
 	echo "stat1.min 0\n";
 	echo "stat1.label Statusdata 1\n";
+	echo "stat1.type DERIVE\n";
 
 	echo "test2.draw AREA\n";
 	echo "test2.min 0\n";

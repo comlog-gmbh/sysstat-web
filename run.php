@@ -269,6 +269,10 @@ if ($mode == 'init') {
 										}
 									}
 									else {
+										if ($row['cat'] && !isset($datasets[$row['cat']])) $datasets[$row['cat']] = [
+											'id' => $row['cat']
+										];
+
 										switch ($row['var']) {
 											case 'draw':
 												if (strtoupper($row['value']) == 'AREA') {
@@ -277,14 +281,14 @@ if ($mode == 'init') {
 												}
 												break;
 											case 'type':
+												if ($row['value'] == 'DERIVE') {
+													$datasets[$row['cat']]['datatype'] = strtolower($row['value']);
+												}
 												$row['var'] = null;
 												break;
 										}
 
 										if ($row['var']) {
-											if (!isset($datasets[$row['cat']])) $datasets[$row['cat']] = [
-												'id' => $row['cat']
-											];
 											$datasets[$row['cat']][$row['var']] = $row['value'];
 										}
 									}

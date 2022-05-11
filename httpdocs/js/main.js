@@ -34,9 +34,21 @@ window.SysstatWeb = new (function () {
 		return 'rgba('+rgba.join(', ')+')';
 	};
 
+	this.getDatasheet = function (id, ds_id) {
+		if (this.Config[id] && this.Config[id].data && this.Config[id].data.datasets) {
+			for (var i=0; i < this.Config[id].data.datasets.length; i++) {
+				if (this.Config[id].data.datasets[i].id == ds_id) {
+					return this.Config[id].data.datasets[i];
+				}
+			}
+		}
+		return null;
+	};
+
 	this.parseData = function (id, date, data) {
-		var config = this.Config[id];
-		var base = config.base || 1;
+		//var config = this.Config[id];
+		//var base = config.base || 1;
+		var last_val = {}, ds, value;
 		var lines = data.split("\n"), line, res = {}, bar, ts;
 		for (var i=0; i < lines.length; i++) {
 			line = lines[i].replace("\r", '').replace(".value", '').split(" ");
@@ -45,7 +57,15 @@ window.SysstatWeb = new (function () {
 			bar = line[1];
 			ts = date+' '+line[0];
 			if (typeof res[ts] == 'undefined') res[ts] = {};
-			res[ts][bar] = line[2] / base;
+			ds = this.getDatasheet(id, bar);
+			value = line[2];
+			if (ds && ds.datatype && ds.datatype.toLowerCase() == 'derive') {
+				if (typeof last_val[bar] == 'undefined') last_val[bar] = value;
+				value = value - last_val[bar];
+				last_val[bar] = value;
+			}
+
+			res[ts][bar] = value;
 		}
 		return res;
 	};
