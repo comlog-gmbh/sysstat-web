@@ -220,7 +220,7 @@ window.SysstatWeb = new (function () {
 				}
 			}
 
-			var jCanvas = $('<canvas id="myChart" class="w-100 h-75"></canvas>');
+			var jCanvas = $('<canvas id="myChart" class="w-100"></canvas>');
 			jSpinner.replaceWith(jCanvas);
 
 			var myChart = new Chart(
