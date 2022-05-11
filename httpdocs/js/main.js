@@ -7,6 +7,7 @@ window.SysstatWeb = new (function () {
 		jSystatWebBody
 	;
 	this.Config = {};
+	this.Chart = null;
 
 	this.stringToHash = function (str, asString, seed) {
 		var i, l,
@@ -34,10 +35,16 @@ window.SysstatWeb = new (function () {
 		return 'rgba('+rgba.join(', ')+')';
 	};
 
+	/**
+	 *
+	 * @param {string} id
+	 * @param {string} ds_id
+	 * @return {null|{datatype: string|undefined}}
+	 */
 	this.getDatasheet = function (id, ds_id) {
 		if (this.Config[id] && this.Config[id].data && this.Config[id].data.datasets) {
 			for (var i=0; i < this.Config[id].data.datasets.length; i++) {
-				if (this.Config[id].data.datasets[i].id == ds_id) {
+				if (this.Config[id].data.datasets[i].id === ds_id) {
 					return this.Config[id].data.datasets[i];
 				}
 			}
@@ -59,10 +66,10 @@ window.SysstatWeb = new (function () {
 			if (typeof res[ts] == 'undefined') res[ts] = {};
 			ds = this.getDatasheet(id, bar);
 			value = line[2];
-			if (ds && ds.datatype && ds.datatype.toLowerCase() == 'derive') {
-				if (typeof last_val[bar] == 'undefined') last_val[bar] = value;
+			if (ds && ds.datatype && ds.datatype.toLowerCase() === 'derive') {
+				if (typeof last_val[bar] == 'undefined') last_val[bar] = line[2];
 				value = value - last_val[bar];
-				last_val[bar] = value;
+				last_val[bar] = line[2];
 			}
 
 			res[ts][bar] = value;
@@ -157,8 +164,8 @@ window.SysstatWeb = new (function () {
 	};
 
 	this.viewTitle = function (id, fromTime, toTime) {
-		var fromTime = this.fromTime(fromTime);
-		var toTime = this.toTime(toTime);
+		fromTime = this.fromTime(fromTime);
+		toTime = this.toTime(toTime);
 		var config = this.Config[id];
 
 		var fromTimeInput = $('<input type="datetime-local" name="fromTime">')
@@ -214,7 +221,7 @@ window.SysstatWeb = new (function () {
 				}
 			}
 
-			var last_label = null, cur_label = null, length = Object.keys(data).length;
+			//var last_label = null, cur_label = null, length = Object.keys(data).length;
 			for (var time in data) {
 				/*if (length <= 36) {
 					cur_label = time.substring(0, 16);
@@ -247,7 +254,7 @@ window.SysstatWeb = new (function () {
 			var jCanvas = $('<canvas id="myChart" class="w-100"></canvas>');
 			jSpinner.replaceWith(jCanvas);
 
-			var myChart = new Chart(
+			_this.Chart = new Chart(
 				jCanvas[0],
 				config
 			);
