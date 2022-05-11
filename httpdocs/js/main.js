@@ -4,9 +4,9 @@ window.SysstatWeb = new (function () {
 		jSystatWebNav,
 		jSystatWebContent,
 		jSystatWebTitle,
-		jSystatWebBody,
-		Config = {}
+		jSystatWebBody
 	;
+	this.Config = {};
 
 	this.stringToHash = function (str, asString, seed) {
 		var i, l,
