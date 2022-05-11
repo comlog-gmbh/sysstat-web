@@ -24,6 +24,6 @@ if ($argv[1] == 'config') {
 	exit;
 }
 
-echo "stat1.value ".rand(0, 100)."\n";
-echo "test2.value ".rand(0, 100)."\n";
+echo "stat1.value ".rand(10000, 100000)."\n";
+echo "test2.value ".rand(10000, 100000)."\n";
 ?>

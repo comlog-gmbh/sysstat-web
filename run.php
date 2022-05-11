@@ -226,6 +226,21 @@ if ($mode == 'init') {
 										switch ($row['var']) {
 											// TODO Prüfen was verwendet werden kann
 											case 'args':
+												$tmp = explode(" ", $row['value']);
+
+												$arg = null;
+												foreach ($tmp as $t) {
+													if ($t === '') continue;
+													if (strpos($t, '-') === 0) {
+														$arg = trim($t, '- ');
+													}
+													else {
+														if (!isset($DBConfigItem[$arg])) $DBConfigItem[$arg] = '';
+														$DBConfigItem[$arg] .= $t;
+													}
+												}
+												$row['var'] = null;
+												break;
 											case 'scale':
 												$row['var'] = null;
 												break;

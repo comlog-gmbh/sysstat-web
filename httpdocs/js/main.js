@@ -4,7 +4,8 @@ window.SysstatWeb = new (function () {
 		jSystatWebNav,
 		jSystatWebContent,
 		jSystatWebTitle,
-		jSystatWebBody
+		jSystatWebBody,
+		Config = {}
 	;
 
 	this.stringToHash = function (str, asString, seed) {
@@ -33,7 +34,9 @@ window.SysstatWeb = new (function () {
 		return 'rgba('+rgba.join(', ')+')';
 	};
 
-	this.parseData = function (date, data) {
+	this.parseData = function (id, date, data) {
+		var config = this.Config[id];
+		var base = config.base || 1;
 		var lines = data.split("\n"), line, res = {}, bar, ts;
 		for (var i=0; i < lines.length; i++) {
 			line = lines[i].replace("\r", '').replace(".value", '').split(" ");
@@ -42,7 +45,7 @@ window.SysstatWeb = new (function () {
 			bar = line[1];
 			ts = date+' '+line[0];
 			if (typeof res[ts] == 'undefined') res[ts] = {};
-			res[ts][bar] = line[2]
+			res[ts][bar] = line[2] / base;
 		}
 		return res;
 	};
@@ -113,7 +116,7 @@ window.SysstatWeb = new (function () {
 					url: 'db/'+id+'.'+ts+'.db?ts='+(new Date()).toISOString(),
 					cache:false,
 					success: function (data) {
-						data = _this.parseData(ts, data);
+						data = _this.parseData(id, ts, data);
 						$.extend(StatData, data);
 						_q();
 					},
@@ -133,10 +136,10 @@ window.SysstatWeb = new (function () {
 		_q();
 	};
 
-
-	this.viewTitle = function (id, config, fromTime, toTime) {
+	this.viewTitle = function (id, fromTime, toTime) {
 		var fromTime = this.fromTime(fromTime);
 		var toTime = this.toTime(toTime);
+		var config = this.Config[id];
 
 		var fromTimeInput = $('<input type="datetime-local" name="fromTime">')
 			.addClass('form-control form-control-sm d-inline-block')
@@ -149,7 +152,7 @@ window.SysstatWeb = new (function () {
 		;
 
 		var _change = function () {
-			_this.viewBody(id, config, fromTimeInput.val(), toTimeInput.val());
+			_this.viewBody(id, fromTimeInput.val(), toTimeInput.val());
 		};
 
 		fromTimeInput.change(_change);
@@ -171,9 +174,10 @@ window.SysstatWeb = new (function () {
 		);
 	};
 
-	this.viewBody = function (id, config, fromTime, toTime) {
+	this.viewBody = function (id, fromTime, toTime) {
 		fromTime = this.fromTime(fromTime);
 		toTime = this.toTime(toTime);
+		var config = this.Config[id];
 
 		var jSpinner = this.spinner();
 		jSystatWebBody.html(jSpinner);
@@ -230,9 +234,9 @@ window.SysstatWeb = new (function () {
 		});
 	};
 
-	this.view = function (id, config, fromTime, toTime) {
-		this.viewTitle(id, config, fromTime, toTime);
-		this.viewBody(id, config, fromTime, toTime);
+	this.view = function (id, fromTime, toTime) {
+		this.viewTitle(id, fromTime, toTime);
+		this.viewBody(id, fromTime, toTime);
 	};
 
 	this.addMenuCat = function (name) {
@@ -255,7 +259,8 @@ window.SysstatWeb = new (function () {
 		return jNav;
 	}
 
-	this.addMenuItem = function(id, config) {
+	this.addMenuItem = function(id) {
+		var config = this.Config[id];
 		if (!config) return false;
 		var jMenu = this.addMenuCat(config.category);
 		jMenu.append(
@@ -263,10 +268,9 @@ window.SysstatWeb = new (function () {
 				.addClass("list-group-item")
 				.text(config.title)
 				.data('id', id)
-				.data('config', config)
+				.attr('data-id', id)
 				.click(function () {
-					var jThis = $(this);
-					_this.view(jThis.data('id'), jThis.data('config'));
+					_this.view(this.getAttribute('data-id'));
 				})
 		)
 		return true;
@@ -283,9 +287,8 @@ window.SysstatWeb = new (function () {
 			dataType: 'json',
 			cache: false,
 			success: function (Config) {
-				for (var i in Config) {
-					_this.addMenuItem(i, Config[i]);
-				}
+				_this.Config = Config;
+				for (var i in Config) _this.addMenuItem(i);
 			},
 			error: function (req, emsg, ecode) {
 				jSystatWebBody.append(
