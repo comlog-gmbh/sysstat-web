@@ -4,10 +4,38 @@ window.SysstatWeb = new (function () {
 		jSystatWebNav,
 		jSystatWebContent,
 		jSystatWebTitle,
-		jSystatWebBody
+		jSystatWebBody,
+		jSettingsForm
 	;
 	this.Config = {};
+	this.Settings = {
+		Interval: -24,
+		PointRadius: 2
+	};
 	this.Chart = null;
+
+	function setCookie(cname, cvalue, exdays) {
+		const d = new Date();
+		d.setTime(d.getTime() + (exdays*24*60*60*1000));
+		let expires = "expires="+ d.toUTCString();
+		document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+	}
+
+	function getCookie(cname) {
+		let name = cname + "=";
+		let decodedCookie = decodeURIComponent(document.cookie);
+		let ca = decodedCookie.split(';');
+		for(let i = 0; i <ca.length; i++) {
+			let c = ca[i];
+			while (c.charAt(0) == ' ') {
+				c = c.substring(1);
+			}
+			if (c.indexOf(name) == 0) {
+				return c.substring(name.length, c.length);
+			}
+		}
+		return "";
+	}
 
 	this.stringToHash = function (str, asString, seed) {
 		var i, l,
@@ -105,7 +133,7 @@ window.SysstatWeb = new (function () {
 		if (typeof fromTime == "string") fromTime = new Date(fromTime);
 		if (!fromTime) {
 			fromTime = new Date();
-			fromTime.setHours(fromTime.getHours() - 24);
+			fromTime.setHours(fromTime.getHours() + parseInt(this.Settings.Interval));
 		}
 		return fromTime;
 	};
@@ -257,6 +285,11 @@ window.SysstatWeb = new (function () {
 			var jCanvas = $('<canvas id="myChart" class="w-100"></canvas>');
 			jSpinner.replaceWith(jCanvas);
 
+			if (!options.options) options.options = {};
+			if (!options.options.elements) options.options.elements = {};
+			if (!options.options.elements.point) options.options.elements.point = {};
+			options.options.elements.point.radius = _this.Settings.PointRadius;
+
 			_this.Chart = new Chart(
 				jCanvas[0],
 				config
@@ -295,7 +328,7 @@ window.SysstatWeb = new (function () {
 		var jMenu = this.addMenuCat(config.category);
 		jMenu.append(
 			$('<a />')
-				.addClass("list-group-item")
+				.addClass("list-group-item py-1")
 				.text(config.title)
 				.data('id', id)
 				.attr('data-id', id)
@@ -306,11 +339,51 @@ window.SysstatWeb = new (function () {
 		return true;
 	};
 
+	// Init
 	$(function () {
 		jSystatWebNav = $('#SystatWebNav');
 		jSystatWebContent = $('#SystatWebContent');
 		jSystatWebTitle = $('#SystatWebTitle');
 		jSystatWebBody = $('#SystatWebBody');
+		jSettingsForm = $('#SettingsForm');
+
+		// Load settings
+		for (var i in _this.Settings) {
+			_this.Settings[i] = getCookie(i) || _this.Settings[i];
+			var jInput = jSettingsForm.find('[name="'+i+'"]');
+			if (jInput.is('[type=checkbox]')) {
+				jInput.attr('checked', jInput.val() === _this.Settings[i]);
+			}
+			else {
+				jInput.val(_this.Settings[i]);
+			}
+		}
+
+		// Save settings
+		jSettingsForm.submit(function () {
+			for (var e=0; e < this.elements.length; e++) {
+				var el = this.elements[e];
+				if (el.type && el.type === 'checkbox') {
+					if (el.checked) {
+						_this.Settings[el.name] = el.value;
+					}
+					else {
+						delete _this.Settings[el.name];
+					}
+				}
+				else {
+					_this.Settings[el.name] = el.value;
+				}
+
+				if (_this.Settings[el.name]) {
+					setCookie(el.name, el.value, 365);
+				}
+				else {
+					setCookie(el.name, '', -1);
+				}
+			}
+			return false;
+		});
 
 		$.ajax({
 			url: 'db/config.json?ts='+(new Date()).toISOString(),

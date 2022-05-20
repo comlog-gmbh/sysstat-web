@@ -11,8 +11,46 @@
 </head>
 <body class="vh-100">
 <div class="container-fluid vh-100">
+	<!-- Modal -->
+	<div class="modal fade" id="SettingsDlg" tabindex="-1" aria-labelledby="SettingsDlgLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="SettingsDlgLabel">Settings</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<form id="SettingsForm" action="#">
+						<div class="mb-3">
+							<label for="Interval" class="form-label">Default interval</label>
+							<select id="Interval" name="Interval" class="form-control">
+								<option value="-24">1 Day</option>
+								<option value="-72">3 Days</option>
+								<option value="-168">7 Days</option>
+							</select>
+						</div>
+						<div class="mb-3">
+							<label for="PointRadius" class="form-label">Points</label>
+							<input type="number" min="0" id="PointRadius" name="PointRadius" value="2" class="form-control">
+						</div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+					<button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="$('#SettingsForm').submit()">Save</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- Struktur -->
 	<div class="row vh-100">
-		<div id="SystatWebNav" class="col col-auto border-end vh-100 overflow-auto"></div>
+		<div class="col col-auto border-end vh-100 overflow-auto">
+			<button type="button" class="btn btn-secondary w-100 mt-2" data-bs-toggle="modal" data-bs-target="#SettingsDlg">
+				<i></i>Settings
+			</button>
+			<hr>
+			<div id="SystatWebNav"></div>
+		</div>
 		<div id="SystatWebContent" class="col overflow-auto">
 			<div id="SystatWebTitle"></div>
 			<div id="SystatWebBody"></div>
