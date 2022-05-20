@@ -127,6 +127,7 @@ window.SysstatWeb = new (function () {
 		fromTime = this.fromTime(fromTime);
 		toTime = this.toTime(toTime);
 
+		var curDateStr = this.toDateString(new Date());
 		var dates = [this.toDateString(fromTime)];
 		var toDateNum = this.toDateNumber(toTime);
 		var nextDay = new Date(fromTime.getTime());
@@ -139,8 +140,10 @@ window.SysstatWeb = new (function () {
 		var _q = function () {
 			if (dates.length > 0) {
 				var ts = dates.shift();
+				var url = 'db/'+id+'.'+ts+'.db';
+				if (ts === curDateStr) url += '?ts='+(new Date()).toISOString();
 				var opts = {
-					url: 'db/'+id+'.'+ts+'.db?ts='+(new Date()).toISOString(),
+					url: url,
 					cache:false,
 					success: function (data) {
 						data = _this.parseData(id, ts, data);
