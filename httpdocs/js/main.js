@@ -285,10 +285,10 @@ window.SysstatWeb = new (function () {
 			var jCanvas = $('<canvas id="myChart" class="w-100"></canvas>');
 			jSpinner.replaceWith(jCanvas);
 
-			if (!options.options) options.options = {};
-			if (!options.options.elements) options.options.elements = {};
-			if (!options.options.elements.point) options.options.elements.point = {};
-			options.options.elements.point.radius = _this.Settings.PointRadius;
+			if (!config.options) config.options = {};
+			if (!config.options.elements) config.options.elements = {};
+			if (!config.options.elements.point) config.options.elements.point = {};
+			config.options.elements.point.radius = _this.Settings.PointRadius;
 
 			_this.Chart = new Chart(
 				jCanvas[0],
