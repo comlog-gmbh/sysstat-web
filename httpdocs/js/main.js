@@ -80,10 +80,11 @@ window.SysstatWeb = new (function () {
 		return null;
 	};
 
+	var _parseDataCache = {}
 	this.parseData = function (id, date, data) {
 		//var config = this.Config[id];
 		//var base = config.base || 1;
-		var last_val = {}, ds, value;
+		var ds, value;
 		var lines = data.split("\n"), line, res = {}, bar, ts;
 		for (var i=0; i < lines.length; i++) {
 			line = lines[i].replace("\r", '').replace(".value", '').split(" ");
@@ -94,17 +95,20 @@ window.SysstatWeb = new (function () {
 			if (typeof res[ts] == 'undefined') res[ts] = {};
 			ds = this.getDatasheet(id, bar);
 			value = line[2];
+			if (ds) {
+				if (ds.datatype && ds.datatype.toLowerCase() === 'derive') {
+					if (typeof _parseDataCache[bar] == 'undefined') _parseDataCache[bar] = line[2];
+					value = line[2] - _parseDataCache[bar];
+					_parseDataCache[bar] = line[2];
+				}
 
-			if (ds && ds.datatype && ds.datatype.toLowerCase() === 'derive') {
-				if (typeof last_val[bar] == 'undefined') last_val[bar] = line[2];
-				value = value - last_val[bar];
-				last_val[bar] = line[2];
+				if (ds.min && value < ds.min) value = ds.min;
+				if (ds.max && value > ds.max) value = ds.max;
 			}
 
-			if (ds.min && value < ds.min) value = ds.min;
-			if (ds.max && value > ds.max) value = ds.max;
 			res[ts][bar] = value;
 		}
+
 		return res;
 	};
 
@@ -284,6 +288,8 @@ window.SysstatWeb = new (function () {
 					}
 				}
 			}
+
+			console.info(JSON.stringify(config));
 
 			var jCanvas = $('<canvas id="myChart" class="w-100"></canvas>');
 			jSpinner.replaceWith(jCanvas);
