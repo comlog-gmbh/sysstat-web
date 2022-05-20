@@ -94,12 +94,15 @@ window.SysstatWeb = new (function () {
 			if (typeof res[ts] == 'undefined') res[ts] = {};
 			ds = this.getDatasheet(id, bar);
 			value = line[2];
+
 			if (ds && ds.datatype && ds.datatype.toLowerCase() === 'derive') {
 				if (typeof last_val[bar] == 'undefined') last_val[bar] = line[2];
 				value = value - last_val[bar];
 				last_val[bar] = line[2];
 			}
 
+			if (ds.min && value < ds.min) value = ds.min;
+			if (ds.max && value > ds.max) value = ds.max;
 			res[ts][bar] = value;
 		}
 		return res;
@@ -285,10 +288,24 @@ window.SysstatWeb = new (function () {
 			var jCanvas = $('<canvas id="myChart" class="w-100"></canvas>');
 			jSpinner.replaceWith(jCanvas);
 
+			// Optimize config
 			if (!config.options) config.options = {};
 			if (!config.options.elements) config.options.elements = {};
+			if (!config.options.plugins) config.options.plugins = {};
 			if (!config.options.elements.point) config.options.elements.point = {};
 			config.options.elements.point.radius = _this.Settings.PointRadius;
+
+			config.options.plugins.zoom = {
+				zoom: {
+					wheel: {
+						enabled: true,
+					},
+					pinch: {
+						enabled: true
+					},
+					mode: 'xy',
+				}
+			};
 
 			_this.Chart = new Chart(
 				jCanvas[0],
