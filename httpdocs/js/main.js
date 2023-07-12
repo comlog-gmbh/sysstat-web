@@ -1,3 +1,5 @@
+// noinspection ES6ConvertVarToLetConst,JSUnresolvedReference
+
 window.SysstatWeb = new (function () {
 	var
 		_this = this,
@@ -10,9 +12,82 @@ window.SysstatWeb = new (function () {
 	this.Config = {};
 	this.Settings = {
 		Interval: -24,
-		PointRadius: 2
+		PointRadius: 2,
+		Group: ''
 	};
 	this.Chart = null;
+
+	this.events = {};
+
+	this.emit = this.trigger = function(event, id, p) {
+		var i;
+		if (!p && id instanceof Array) {
+			p = id;
+			id = null;
+		}
+		if (!(p instanceof Array)) p = [p];
+		if (this.events[event]) {
+			for (i=0; i < this.events[event].length; i++) {
+				this.events[event][i].done = false;
+				// nur eine Bestimmte id ausführen
+				if (id && this.events[event][i].id !== id) continue;
+
+				if (this.events[event][i].fn) {
+					if (p.length === 0) this.events[event][i].fn();
+					else if (p.length === 1) this.events[event][i].fn(p[0]);
+					else if (p.length === 2) this.events[event][i].fn(p[0], p[1]);
+					else if (p.length === 3) this.events[event][i].fn(p[0], p[1], p[2]);
+					else if (p.length === 4) this.events[event][i].fn(p[0], p[1], p[2], p[3]);
+					else if (p.length === 5) this.events[event][i].fn(p[0], p[1], p[2], p[3], p[4], p[5]);
+					else if (p.length === 6) this.events[event][i].fn(p[0], p[1], p[2], p[3], p[4], p[5], p[6]);
+					else if (p.length === 7) this.events[event][i].fn(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+					else if (p.length === 8) this.events[event][i].fn(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8]);
+					else if (p.length === 9) this.events[event][i].fn(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9]);
+					else if (p.length === 10) this.events[event][i].fn(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10]);
+				}
+				this.events[event][i].done = true;
+			}
+
+			// Ereignisse aufräumen
+			for(i= this.events[event].length-1; i >=0 ; i--) {
+				if (!this.events[event][i].multiple && this.events[event][i].done) this.events[event].splice(i, 1);
+			}
+		}
+	};
+
+	var uniq = function() {
+		return (new Date()).getTime() + '' + (Math.floor((Math.random() * 1000) + 1));
+	};
+
+	this.once = this.one = function(event, id, cb) {
+		if (!cb) {
+			cb = id;
+			id = uniq(event);
+		}
+		if (!this.events[event]) this.events[event] = [];
+		this.events[event].push({fn: cb, multiple: false, id: id});
+	};
+
+	this.on = function(event, id, cb) {
+		if (!cb) {
+			cb = id;
+			id = uniq(event);
+		}
+		if (!this.events[event]) this.events[event] = [];
+		this.events[event].push({fn: cb, multiple: true, id: id});
+	};
+
+	this.off = function(event, id) {
+		if (this.events[event]) {
+			if (typeof id != 'undefined' && id !== null) {
+				for(var i=this.events[event].length-1; i >= 0; i--) {
+					if (this.events[event][i].id === id) this.events[event].splice(i, 1);
+				}
+			} else {
+				delete this.events[event];
+			}
+		}
+	};
 
 	function setCookie(cname, cvalue, exdays) {
 		const d = new Date();
@@ -27,10 +102,10 @@ window.SysstatWeb = new (function () {
 		let ca = decodedCookie.split(';');
 		for(let i = 0; i <ca.length; i++) {
 			let c = ca[i];
-			while (c.charAt(0) == ' ') {
+			while (c.charAt(0) === ' ') {
 				c = c.substring(1);
 			}
-			if (c.indexOf(name) == 0) {
+			if (c.indexOf(name) === 0) {
 				return c.substring(name.length, c.length);
 			}
 		}
@@ -113,6 +188,88 @@ window.SysstatWeb = new (function () {
 	};
 
 	/**
+	 *
+	 * @param {{}} data
+	 * @param {"hourly"|"daily"|"weekly"} group
+	 * @returns {{}|*}
+	 */
+	this.groupData = function (data, group) {
+		var res = {},
+			count = {},
+			sum = {},
+			current = null,
+			ts,
+			graph
+		;
+		switch (group) {
+			case 'daily':
+				count = {};
+				sum = {};
+				current = null;
+				for (ts in data) {
+					var id = ts.substring(0, 10);
+					if (current === null) current = id;
+					if (!res[current]) res[current] = {};
+
+					for (graph in data[ts]) {
+						if (!count[graph]) count[graph] = 0;
+						if (!sum[graph]) sum[graph] = 0;
+						if (current === id) {
+							sum[graph] += parseFloat(data[ts][graph]);
+							count[graph] += 1;
+						}
+
+						if (!res[current][graph]) res[current][graph] = {};
+						if (count[graph] === 0) res[current][graph] = 0;
+						else res[current][graph] = sum[graph] / count[graph];
+					}
+
+					// Reset
+					if (current !== id) {
+						current = id;
+						count = {};
+						sum = {};
+					}
+				}
+
+				break;
+			case 'hourly':
+				count = {};
+				sum = {};
+				current = null;
+				for (ts in data) {
+					var id = ts.substring(0, 13);
+					if (current === null) current = id;
+					if (!res[current]) res[current] = {};
+
+					for (graph in data[ts]) {
+						if (!count[graph]) count[graph] = 0;
+						if (!sum[graph]) sum[graph] = 0;
+						if (current === id) {
+							sum[graph] += parseFloat(data[ts][graph]);
+							count[graph] += 1;
+						}
+
+						if (!res[current][graph]) res[current][graph] = {};
+						if (count[graph] === 0) res[current][graph] = 0;
+						else res[current][graph] = sum[graph] / count[graph];
+					}
+
+					// Reset
+					if (current !== id) {
+						current = id;
+						count = {};
+						sum = {};
+					}
+				}
+				break;
+			default: return data;
+		}
+
+		return res;
+	};
+
+	/**
 	 * Get ISO Date String
 	 * @param {Date} date
 	 * @returns {string} yyyy-mm-dd
@@ -156,7 +313,7 @@ window.SysstatWeb = new (function () {
 	 * @param {string} id
 	 * @param {Date|null} fromTime
 	 * @param {Date|null} toTime
-	 * @param {(any) => void} cb
+	 * @param {(any) => void|null} cb
 	 */
 	this.load = function(id, fromTime, toTime, cb) {
 		fromTime = this.fromTime(fromTime);
@@ -166,6 +323,18 @@ window.SysstatWeb = new (function () {
 		var dates = [this.toDateString(fromTime)];
 		var toDateNum = this.toDateNumber(toTime);
 		var nextDay = new Date(fromTime.getTime());
+		var group = null;
+
+		if (!_this.Settings.Group) {
+			var timeDiff = toTime - fromTime;
+			var dateDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+			if (dateDiff > 7) group = 'daily';
+			else if (dateDiff > 2) group = 'hourly';
+		}
+		else {
+			group = _this.Settings.Group;
+		}
+
 		while (this.toDateNumber(nextDay) < toDateNum) {
 			nextDay.setHours(nextDay.getHours() + 24);
 			dates.push(this.toDateString(nextDay));
@@ -182,10 +351,13 @@ window.SysstatWeb = new (function () {
 					cache:false,
 					success: function (data) {
 						data = _this.parseData(id, ts, data);
+						data = _this.groupData(data, group);
 						$.extend(StatData, data);
+						_this.emit('data', [data]);
 						_q();
 					},
 					error: function (err, type, message) {
+						_this.emit('data.error', [err]);
 						if (typeof console != "undefined") console.warn('db/'+id+'.'+ts+'.db: '+message);
 						_q();
 					}
@@ -194,7 +366,8 @@ window.SysstatWeb = new (function () {
 				return;
 			}
 
-			cb(StatData);
+			if (cb) cb(StatData);
+			_this.emit('data.done', [StatData]);
 		}
 
 		// Get db data
@@ -243,23 +416,51 @@ window.SysstatWeb = new (function () {
 		fromTime = this.fromTime(fromTime);
 		toTime = this.toTime(toTime);
 		var config = this.Config[id];
+		config.data.labels = [];
+
+		// Optimize config
+		if (!config.options) config.options = {};
+		if (!config.options.elements) config.options.elements = {};
+		if (!config.options.plugins) config.options.plugins = {};
+		if (!config.options.elements.point) config.options.elements.point = {};
+		config.options.elements.point.radius = _this.Settings.PointRadius;
+
+		config.options.plugins.zoom = {
+			zoom: {
+				wheel: {
+					enabled: true,
+				},
+				pinch: {
+					enabled: true
+				},
+				mode: 'xy',
+			}
+		};
 
 		var jSpinner = this.spinner();
 		jSystatWebBody.html(jSpinner);
+		var jCanvas = $('<canvas id="myChart" class="w-100"></canvas>');
+		jCanvas.appendTo(jSystatWebBody);
+		console.info(JSON.stringify(config));
 
-		this.load(id, fromTime, toTime, function (data) {
+		_this.Chart = new Chart(
+			jCanvas[0],
+			config
+		);
+
+		this.on('data', function (data) {
 			var dsmap = {};
 
-			config.data.labels = [];
-			for (var i=0; i < config.data.datasets.length; i++) {
-				dsmap[config.data.datasets[i].id] = i;
-				if (!config.data.datasets[i].borderColor) {
-					config.data.datasets[i].borderColor = _this.stringToColor(config.data.datasets[i].id);
-					config.data.datasets[i].backgroundColor = config.data.datasets[i].borderColor;
+			for (var i=0; i < _this.Chart.data.datasets.length; i++) {
+				dsmap[_this.Chart.data.datasets[i].id] = i;
+				if (!_this.Chart.data.datasets[i].borderColor) {
+					_this.Chart.data.datasets[i].borderColor = _this.stringToColor(_this.Chart.data.datasets[i].id);
+					_this.Chart.data.datasets[i].backgroundColor = _this.Chart.data.datasets[i].borderColor;
 				}
 			}
 
 			//var last_label = null, cur_label = null, length = Object.keys(data).length;
+
 			for (var time in data) {
 				/*if (length <= 36) {
 					cur_label = time.substring(0, 16);
@@ -272,52 +473,32 @@ window.SysstatWeb = new (function () {
 				}
 
 				if (last_label !== cur_label) {
-					config.data.labels.push(time);
+					_this.Chart.data.labels.push(time);
 					last_label = cur_label;
 				}
 				else {
-					config.data.labels.push('');
+					_this.Chart.data.labels.push('');
 				}*/
 
-				config.data.labels.push(time);
+				_this.Chart.data.labels.push(time);
 				for (var bar in data[time]) {
 					var index = dsmap[bar];
 					if (typeof index !== "undefined") {
-						if (!config.data.datasets[index].data) config.data.datasets[index].data = [];
-						config.data.datasets[index].data.push(data[time][bar]);
+						if (!_this.Chart.data.datasets[index].data) _this.Chart.data.datasets[index].data = [];
+						_this.Chart.data.datasets[index].data.push(data[time][bar]);
 					}
 				}
 			}
 
-			console.info(JSON.stringify(config));
-
-			var jCanvas = $('<canvas id="myChart" class="w-100"></canvas>');
-			jSpinner.replaceWith(jCanvas);
-
-			// Optimize config
-			if (!config.options) config.options = {};
-			if (!config.options.elements) config.options.elements = {};
-			if (!config.options.plugins) config.options.plugins = {};
-			if (!config.options.elements.point) config.options.elements.point = {};
-			config.options.elements.point.radius = _this.Settings.PointRadius;
-
-			config.options.plugins.zoom = {
-				zoom: {
-					wheel: {
-						enabled: true,
-					},
-					pinch: {
-						enabled: true
-					},
-					mode: 'xy',
-				}
-			};
-
-			_this.Chart = new Chart(
-				jCanvas[0],
-				config
-			);
+			console.info(JSON.stringify(_this.Chart.data));
+			_this.Chart.update();
 		});
+
+		this.on('data.done', function (data) {
+			jSpinner.remove();
+		});
+
+		this.load(id, fromTime, toTime);
 	};
 
 	this.view = function (id, fromTime, toTime) {

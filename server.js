@@ -17,6 +17,9 @@ http.createServer(function (request, response) {
 		case '.css':
 			contentType = 'text/css';
 			break;
+		case '.db':
+			contentType = 'text/plain';
+			break;
 		case '.json':
 			contentType = 'application/json';
 			break;
